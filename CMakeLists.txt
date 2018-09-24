@@ -7,8 +7,8 @@
 ###############################################################################
 
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
-cmake_minimum_required(VERSION 2.6)
-project(zipper)
+cmake_minimum_required(VERSION 3.2)
+project(zipper C CXX)
 
 include (CMakeTestCCompiler)
 include (CheckCSourceCompiles)
@@ -49,38 +49,40 @@ set(PACKAGE_NAME "Zipper")
 add_custom_target(dist COMMAND ${CMAKE_MAKE_PROGRAM} package_source)
 add_custom_target(check COMMAND ${CMAKE_MAKE_PROGRAM} test)
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "C++ wrapper around minizip compression library.")
-set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
-set(CPACK_PACKAGE_VENDOR "The SBML Team")
-set(CPACK_PACKAGE_CONTACT "SBML Team <sbml-team@caltech.edu>, Sebastian <devsebas@gmail.com>")
-set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md")
-set(CPACK_PACKAGE_VERSION_MAJOR "${ZIPPER_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${ZIPPER_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${ZIPPER_VERSION_PATCH}")
-set(CPACK_RPM_PACKAGE_LICENSE "MIT")
-set(CPACK_RPM_PACKAGE_GROUP "Libraries/Development")
-set(CPACK_DEBIAN_PACKAGE_SECTION "Libraries")
+if (ZIPPER_DO_PACKAGING)
+	set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "C++ wrapper around minizip compression library.")
+	set(CPACK_PACKAGE_NAME "${PACKAGE_NAME}")
+	set(CPACK_PACKAGE_VENDOR "The SBML Team")
+	set(CPACK_PACKAGE_CONTACT "SBML Team <sbml-team@caltech.edu>, Sebastian <devsebas@gmail.com>")
+	set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md")
+	set(CPACK_PACKAGE_VERSION_MAJOR "${ZIPPER_VERSION_MAJOR}")
+	set(CPACK_PACKAGE_VERSION_MINOR "${ZIPPER_VERSION_MINOR}")
+	set(CPACK_PACKAGE_VERSION_PATCH "${ZIPPER_VERSION_PATCH}")
+	set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+	set(CPACK_RPM_PACKAGE_GROUP "Libraries/Development")
+	set(CPACK_DEBIAN_PACKAGE_SECTION "Libraries")
+	
+	set(CPACK_SOURCE_IGNORE_FILES "${CMAKE_CURRENT_BINARY_DIR};/.svn/;/.libs/;/.deps/;/.bzr/;.*.o$;.*.lo$;.*.la$;/.git/;${CPACK_SOURCE_IGNORE_FILES};/.DS_Store;/.svnignore;blib;libsbml-dist;*.txt.user")
+	
+	set(ADDITIONAL_LIB_DIRS)
+	if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+	    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
+	    set(CPACK_RPM_PACKAGE_ARCHITECTURE "i386")
+	else()
+	    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+	    set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
+	    set(ADDITIONAL_LIB_DIRS "/usr/lib64" "/usr/lib/x86_64-linux-gnu/")
+	endif()
 
-set(CPACK_SOURCE_IGNORE_FILES "${CMAKE_CURRENT_BINARY_DIR};/.svn/;/.libs/;/.deps/;/.bzr/;.*.o$;.*.lo$;.*.la$;/.git/;${CPACK_SOURCE_IGNORE_FILES};/.DS_Store;/.svnignore;blib;libsbml-dist;*.txt.user")
-
-set(ADDITIONAL_LIB_DIRS)
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "i386")
-    set(CPACK_RPM_PACKAGE_ARCHITECTURE "i386")
-else()
-    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-    set(CPACK_RPM_PACKAGE_ARCHITECTURE "x86_64")
-    set(ADDITIONAL_LIB_DIRS "/usr/lib64" "/usr/lib/x86_64-linux-gnu/")
+	include(CPack)
 endif()
 
-include(CPack)
-
 # Add an option to compile with all warnings shown
-option(WITH_WALL     "Compile with -Wall, so that the compiler will display all warnings." OFF)
-mark_as_advanced(WITH_WALL)
+option(ZIPPER_WITH_WALL     "Compile with -Wall, so that the compiler will display all warnings." OFF)
+mark_as_advanced(ZIPPER_WITH_WALL)
 
-if(WITH_WALL)
+if(ZIPPER_WITH_WALL)
     if(MSVC OR USING_INTEL)
         add_definitions(/W4)
     else()
@@ -179,8 +181,8 @@ endif ()
 if(MSVC OR USING_INTEL)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE)
     set(BUILD_DEFINITIONS "${BUILD_DEFINITIONS} -D_CRT_SECURE_NO_WARNINGS")
-    option(WITH_STATIC_RUNTIME "Compile using the static MSVC Runtime." OFF)
-    if(WITH_STATIC_RUNTIME)
+    option(ZIPPER_WITH_STATIC_RUNTIME "Compile using the static MSVC Runtime." OFF)
+    if(ZIPPER_WITH_STATIC_RUNTIME)
         foreach(flag_var
             CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
             CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
@@ -193,7 +195,7 @@ if(MSVC OR USING_INTEL)
             
         endforeach(flag_var)
     add_definitions( -D_MT)
-    endif(WITH_STATIC_RUNTIME)
+    endif(ZIPPER_WITH_STATIC_RUNTIME)
 
 
   # CMake no longer creates PDB files for static libraries after 2.8.11
@@ -229,8 +231,8 @@ else()
        # Since we are encountering errors with the use of libc++ on OSX
        # this option allows to override which stdlib to use
        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-         option(CLANG_USE_STDLIB "Use libstdc++ rather than libc++" OFF)
-         if (CLANG_USE_STDLIB)
+         option(ZIPPER_CLANG_USE_STDLIB "Use libstdc++ rather than libc++" OFF)
+         if (ZIPPER_CLANG_USE_STDLIB)
            SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++" )
          endif()
        endif()
@@ -238,11 +240,11 @@ else()
        # On OSX it is common to build universal binaries to support multiple
        # processor architectures. The default behavior is not to build
        # multiple architectures, as most users might not need that.
-       option(ENABLE_UNIVERSAL "Create universal binaries on Mac OS X." OFF)
+       option(ZIPPER_ENABLE_UNIVERSAL "Create universal binaries on Mac OS X." OFF)
    
        set(CMAKE_OSX_ARCHITECTURES "${CMAKE_OSX_ARCHITECTURES}" CACHE STRING
           "A semicolon-separated list of build architectures to be used.")
-       if(ENABLE_UNIVERSAL)
+       if(ZIPPER_ENABLE_UNIVERSAL)
            # if universal binaries are requested and none defined so far
            # overwrite them with all three common architectures. If the user
            # specified their own list of architectures do not touch!
@@ -258,14 +260,14 @@ else()
                       "A semicolon-separated list of build architectures to be used." FORCE)
                endif()
            endif()
-       endif(ENABLE_UNIVERSAL)
+       endif(ZIPPER_ENABLE_UNIVERSAL)
    else(APPLE)
        add_definitions(-DLINUX)
    
        if(NOT CYGWIN)
            # on cygwin all code is position independent so -fPIC is not needed
-           set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -fPIC")
-           set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing -fPIC")
+           set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing -fPIC -w")
+           set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-strict-aliasing -fPIC -w")
        endif()
    
        set(BUILD_DEFINITIONS "${BUILD_DEFINITIONS} -DLINUX")
@@ -331,8 +333,8 @@ file(GLOB TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/test/*.hpp
 )
 
-option(BUILD_SHARED_VERSION "Build the shared version of the library." OFF)
-if (BUILD_SHARED_VERSION)
+option(ZIPPER_BUILD_SHARED_VERSION "Build the shared version of the library." OFF)
+if (ZIPPER_BUILD_SHARED_VERSION)
   add_library (${ZIPPER_LIBRARY} SHARED ${ZIPPER_SOURCES} ${MINIZIP_SOURCES} )
   
   if (UNIX)
@@ -350,8 +352,8 @@ if (BUILD_SHARED_VERSION)
   )
 endif()
 
-option(BUILD_STATIC_VERSION "Build the static version of the library." ON)
-if (BUILD_STATIC_VERSION)
+option(ZIPPER_BUILD_STATIC_VERSION "Build the static version of the library." ON)
+if (ZIPPER_BUILD_STATIC_VERSION)
   add_library (${ZIPPER_LIBRARY} STATIC ${ZIPPER_SOURCES} ${MINIZIP_SOURCES})
   target_include_directories(${ZIPPER_LIBRARY} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/zipper/includes/)
 
@@ -367,8 +369,8 @@ endif()
 
 
 
-option(BUILD_TEST "Build the test program." OFF)
-if (BUILD_TEST)
+option(ZIPPER_BUILD_TEST "Build the test program." OFF)
+if (ZIPPER_BUILD_TEST)
   enable_testing()
 
   if (UNIX)
@@ -404,6 +406,7 @@ install(FILES
         DESTINATION include/zipper
 )
 
+if (ZYPPER_PRINT_STATUS)
 message(STATUS "
 ----------------------------------------------------------------------
 Zipper version ${PACKAGE_VERSION}
@@ -429,4 +432,4 @@ Zipper version ${PACKAGE_VERSION}
    Other configuration settings:
      Installation $prefix            = ${CMAKE_INSTALL_PREFIX}
      ")
-
+endif()
